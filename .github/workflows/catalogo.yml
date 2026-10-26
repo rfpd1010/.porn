@@ -1,0 +1,34 @@
+name: catalogo
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "0 4 * * 0"          # cada domingo
+  push:
+    paths: [semillas.txt]
+
+permissions:
+  contents: write
+concurrency:
+  group: catalogo
+  cancel-in-progress: false
+
+jobs:
+  rastrear:
+    runs-on: ubuntu-latest
+    timeout-minutes: 350
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install --upgrade yt-dlp Pillow
+      - run: python tools/catalogo.py
+        env:
+          POR_SEMILLA: "400"
+          MAX_TOTAL: "20000"
+      - run: |
+          git config user.name "bot"
+          git config user.email "bot@users.noreply.github.com"
+          git add catalogo.json thumbs
+          git diff --cached --quiet || git commit -m "catalogo"
+          git push
