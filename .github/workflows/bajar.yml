@@ -1,0 +1,50 @@
+name: bajar
+on:
+  workflow_dispatch:
+    inputs:
+      id:
+        description: "id del catálogo"
+        required: false
+      url:
+        description: "url | titulo | etiquetas"
+        required: false
+      pendientes:
+        description: "cuántos pendientes bajar"
+        required: false
+        default: "0"
+
+permissions:
+  contents: write
+concurrency:
+  group: bajar
+  cancel-in-progress: false
+
+jobs:
+  bajar:
+    runs-on: ubuntu-latest
+    timeout-minutes: 350
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install --upgrade yt-dlp
+      - name: bajar
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ALTURA: "480"
+          IN_ID: ${{ inputs.id }}
+          IN_URL: ${{ inputs.url }}
+          IN_PEND: ${{ inputs.pendientes }}
+        run: |
+          ARGS=()
+          [ -n "$IN_ID" ] && ARGS+=(--id "$IN_ID")
+          [ -n "$IN_URL" ] && ARGS+=(--url "$IN_URL")
+          [ -n "$IN_PEND" ] && [ "$IN_PEND" != "0" ] && ARGS+=(--pendientes "$IN_PEND")
+          python tools/bajar.py "${ARGS[@]}"
+      - run: |
+          git config user.name "bot"
+          git config user.email "bot@users.noreply.github.com"
+          git add catalogo.json thumbs
+          git diff --cached --quiet || git commit -m "descargas"
+          git push
