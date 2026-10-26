@@ -1,0 +1,248 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Mi videoteca</title>
+<style>
+  :root{--bg:#0d1117;--card:#161b22;--fg:#e6edf3;--mut:#8b949e;--bd:#30363d;--acc:#f78166;--in:#010409;--muted:#21262d;--ok:#3fb950;--av:#d29922;}
+  @media (prefers-color-scheme:light){:root{--bg:#fff;--card:#f6f8fa;--fg:#1f2328;--mut:#59636e;--bd:#d1d9e0;--acc:#cf4b21;--in:#fff;--muted:#eaeef2;--ok:#1a7f37;--av:#9a6700;}}
+  *{box-sizing:border-box}
+  html,body{margin:0}
+  body{background:var(--bg);color:var(--fg);font:14px/1.5 ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
+  header{display:flex;gap:8px;align-items:center;flex-wrap:wrap;padding:12px 16px;border-bottom:1px solid var(--bd)}
+  h1{font-size:15px;font-weight:600;margin:0 10px 0 0}
+  input,button{font:inherit;font-size:13px;padding:7px 10px;border:1px solid var(--bd);border-radius:8px;background:var(--in);color:var(--fg);outline:none}
+  input:focus{border-color:var(--acc)}
+  button{cursor:pointer;background:var(--card)}
+  button.pri{background:var(--acc);border-color:var(--acc);color:#fff}
+  #q{flex:1;min-width:150px}
+  nav{display:flex;gap:6px;flex-wrap:wrap;padding:10px 16px;border-bottom:1px solid var(--bd);max-height:110px;overflow:auto}
+  .chip{font-size:12px;padding:4px 10px;border-radius:999px;border:1px solid var(--bd);background:transparent;color:var(--mut);cursor:pointer;white-space:nowrap}
+  .chip.on{border-color:var(--acc);color:var(--acc)}
+  #aviso{padding:8px 16px;font-size:12px;color:var(--mut);border-bottom:1px solid var(--bd);display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+  #aviso a{color:var(--acc)}
+  #player{display:none;border-bottom:1px solid var(--bd);background:var(--card)}
+  .bar{display:flex;gap:8px;align-items:center;padding:8px 16px;flex-wrap:wrap}
+  .bar .nm{font-weight:600;font-size:13px}
+  .bar a{color:var(--mut);font-size:12px}
+  #player video{width:100%;max-height:62vh;display:block;background:#000}
+  main{display:grid;grid-template-columns:repeat(auto-fill,minmax(215px,1fr));gap:10px;padding:16px}
+  .card{border:1px solid var(--bd);border-radius:12px;background:var(--card);overflow:hidden}
+  .card .thumb{position:relative;cursor:pointer;background:var(--muted);aspect-ratio:16/9}
+  .card img{width:100%;height:100%;object-fit:cover;display:block}
+  .card .vacio{width:100%;height:100%;display:flex;align-items:center;justify-content:center;color:var(--mut);font-size:11px}
+  .card .dur{position:absolute;right:6px;bottom:6px;background:#000c;color:#fff;font-size:11px;padding:1px 5px;border-radius:4px}
+  .badge{position:absolute;left:6px;top:6px;font-size:10px;padding:1px 7px;border-radius:999px;color:#fff;background:var(--mut)}
+  .badge.listo{background:var(--ok)}
+  .badge.cola{background:var(--av)}
+  .card .cuerpo{padding:9px 10px}
+  .card h3{font-size:12.5px;font-weight:600;margin:0 0 6px;display:flex;gap:6px;align-items:flex-start}
+  .star{margin-left:auto;background:none;border:0;padding:0;font-size:15px;color:var(--mut);cursor:pointer;line-height:1}
+  .star.on{color:#e3b341}
+  .tags{display:flex;gap:4px;flex-wrap:wrap}
+  .t{font-size:10.5px;padding:2px 7px;border-radius:999px;background:var(--muted);color:var(--mut);cursor:pointer}
+  .acciones{display:flex;gap:6px;margin-top:9px;flex-wrap:wrap}
+  .acciones button,.acciones a{font-size:11.5px;padding:4px 9px;border-radius:7px;text-decoration:none}
+  .acciones a{border:1px solid var(--bd);color:var(--mut)}
+  .acciones button{border:1px solid var(--acc);background:var(--acc);color:#fff}
+  .acciones button.gh{background:transparent;color:var(--mut);border-color:var(--bd)}
+  .count{color:var(--mut);font-size:12px;padding:12px 16px 0}
+  #mas{display:block;margin:14px auto 30px}
+  footer{padding:14px 16px 30px;color:var(--mut);font-size:12px;border-top:1px solid var(--bd)}
+  footer input{font-size:12px;width:290px}
+</style>
+</head>
+<body>
+<header>
+  <h1>Mi videoteca</h1>
+  <input id="q" placeholder="Buscar título o etiqueta... (pulsa /)">
+  <button id="prep" class="pri">Preparar offline</button>
+  <button id="rnd">Aleatorio</button>
+  <button id="favb">Favoritos</button>
+  <button id="sinc">Sincronizar</button>
+</header>
+<nav id="chips"></nav>
+<div id="aviso"></div>
+<section id="player">
+  <div class="bar"><span class="nm" id="pname"></span><a id="pfte" target="_blank" rel="noopener">ver en la web original</a><button id="pclose">Cerrar</button></div>
+  <video id="video" controls playsinline preload="metadata"></video>
+</section>
+<div class="count" id="count"></div>
+<main id="grid"></main>
+<button id="mas" hidden>Cargar más</button>
+<footer>
+  Token de GitHub (para el botón «Descargar ahora»): <input id="pat" type="password" placeholder="github_pat_...">
+  <button id="guardar">Guardar</button>
+  <div style="margin-top:8px">Todo se sirve desde GitHub: catálogo y miniaturas desde este dominio, vídeos desde Releases. Sin iframes y sin webs externas.</div>
+</footer>
+
+<script>
+const $ = s => document.querySelector(s);
+const KEY = 'videoteca_favs', COLAP = 'videoteca_cola';
+const [OWNER, NOMBRE] = [location.hostname.split('.')[0], (location.pathname.split('/')[1] || '')];
+const REPO = NOMBRE ? `${OWNER}/${NOMBRE}` : '';
+let CATALOGO = [], cat = 'all', term = '', mostrar = 240, actual = null;
+let favs = new Set(JSON.parse(localStorage.getItem(KEY) || '[]'));
+let cola = JSON.parse(localStorage.getItem(COLAP) || '{}');
+const esc = s => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const norm = s => String(s).normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+const fmtDur = s => { s = Math.round(s||0); return Math.floor(s/60)+':'+String(s%60).padStart(2,'0'); };
+const guardarCola = () => localStorage.setItem(COLAP, JSON.stringify(cola));
+
+async function cargar(){
+  try { const r = await fetch('catalogo.json', { cache: 'reload' }); CATALOGO = await r.json(); }
+  catch (e) { CATALOGO = []; }
+}
+
+function etiquetas(){
+  const m = new Map();
+  CATALOGO.forEach(v => (v.tags||[]).forEach(t => m.set(t, (m.get(t)||0)+1)));
+  return [...m.entries()].sort((a,b) => b[1]-a[1]).slice(0, 60).map(([t]) => t);
+}
+
+function renderChips(){
+  const items = [['all','Todo'],['listo','Descargados'],['pendiente','Pendientes'],['fav','Favoritos']]
+    .concat(etiquetas().map(t => [t,t]));
+  $('#chips').innerHTML = items.map(([k,l]) =>
+    `<button class="chip${k===cat?' on':''}" data-c="${esc(k)}">${esc(l)}</button>`).join('');
+}
+
+function vista(){
+  let l = CATALOGO.slice();
+  if (cat === 'fav') l = l.filter(v => favs.has(v.id));
+  else if (cat === 'listo' || cat === 'pendiente') l = l.filter(v => (v.estado || 'pendiente') === cat);
+  else if (cat !== 'all') l = l.filter(v => (v.tags||[]).includes(cat));
+  if (term){ const ts = norm(term).split(/\s+/).filter(Boolean);
+    l = l.filter(v => { const h = norm(v.titulo + ' ' + (v.tags||[]).join(' ')); return ts.every(t => h.includes(t)); }); }
+  return l;
+}
+
+function render(){
+  const l = vista(), trozo = l.slice(0, mostrar);
+  $('#count').textContent = l.length + ' vídeos · ' + CATALOGO.filter(v => v.estado === 'listo').length + ' descargados en total';
+  $('#grid').innerHTML = trozo.map(v => {
+    const enCola = cola[v.id] && (Date.now() - cola[v.id] < 20*60000);
+    const estado = v.estado === 'listo' ? 'listo' : (enCola ? 'cola' : '');
+    return `<article class="card">
+      <div class="thumb" data-play="${esc(v.id)}">
+        ${v.thumb ? `<img src="${esc(v.thumb)}" alt="" loading="lazy">` : `<div class="vacio">sin miniatura</div>`}
+        ${v.dur ? `<span class="dur">${fmtDur(v.dur)}</span>` : ''}
+        ${estado ? `<span class="badge ${estado}">${estado === 'listo' ? 'offline' : 'en cola'}</span>` : ''}
+      </div>
+      <div class="cuerpo">
+        <h3>${esc(v.titulo)}<button class="star${favs.has(v.id)?' on':''}" data-f="${esc(v.id)}">${favs.has(v.id)?'★':'☆'}</button></h3>
+        <div class="tags">${(v.tags||[]).slice(0,4).map(t => `<span class="t" data-tag="${esc(t)}">${esc(t)}</span>`).join('')}</div>
+        <div class="acciones">
+          ${v.estado === 'listo'
+            ? `<button data-play="${esc(v.id)}">Reproducir</button>`
+            : `<button data-dl="${esc(v.id)}"${enCola?' class="gh"':''}>${enCola ? 'en cola...' : 'Descargar ahora'}</button>`}
+          <a href="${esc(v.url)}" target="_blank" rel="noopener">fuente</a>
+        </div>
+      </div>
+    </article>`;
+  }).join('');
+  $('#mas').hidden = l.length <= mostrar;
+}
+
+function play(v){
+  if (v.estado !== 'listo') { encolar(v); return; }
+  actual = v;
+  $('#player').style.display = 'block';
+  $('#pname').textContent = v.titulo;
+  $('#pfte').href = v.url;
+  const el = $('#video');
+  el.src = v.archivo;
+  el.poster = v.thumb || '';
+  el.play().catch(()=>{});
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+async function encolar(v){
+  const pat = localStorage.getItem('gh_pat');
+  if (!pat || !REPO){ alert('Pega tu token de GitHub abajo y pulsa Guardar (una sola vez).'); return; }
+  cola[v.id] = Date.now(); guardarCola(); render();
+  const r = await fetch(`https://api.github.com/repos/${REPO}/actions/workflows/bajar.yml/dispatches`, {
+    method: 'POST',
+    headers: { 'Authorization': 'Bearer ' + pat, 'Accept': 'application/vnd.github+json',
+               'Content-Type': 'application/json' },
+    body: JSON.stringify({ ref: 'main', inputs: { id: v.id, url: v.url } })
+  });
+  if (!r.ok) alert('No se pudo encolar (' + r.status + '). Revisa el token y que el workflow se llame bajar.yml.');
+}
+
+async function sincronizar(){
+  await cargar(); render(); estado();
+}
+
+$('#grid').addEventListener('click', ev => {
+  const f = ev.target.closest('button[data-f]');
+  if (f){ const id = f.dataset.f; favs.has(id) ? favs.delete(id) : favs.add(id);
+          localStorage.setItem(KEY, JSON.stringify([...favs])); render(); return; }
+  const dl = ev.target.closest('button[data-dl]');
+  if (dl){ const v = CATALOGO.find(x => x.id === dl.dataset.dl); if (v) encolar(v); return; }
+  const tg = ev.target.closest('[data-tag]');
+  if (tg){ cat = tg.dataset.tag; renderChips(); render(); return; }
+  const pl = ev.target.closest('[data-play]');
+  if (pl){ const v = CATALOGO.find(x => x.id === pl.dataset.play); if (v) play(v); }
+});
+$('#chips').addEventListener('click', ev => { const c = ev.target.closest('.chip'); if (!c) return;
+  cat = c.dataset.c; mostrar = 240; renderChips(); render(); });
+$('#q').addEventListener('input', e => { term = e.target.value.trim(); mostrar = 240; render(); });
+$('#favb').addEventListener('click', () => { cat = cat === 'fav' ? 'all' : 'fav'; renderChips(); render(); });
+$('#rnd').addEventListener('click', () => { const l = vista(); if (l.length) play(l[Math.floor(Math.random()*l.length)]); });
+$('#pclose').addEventListener('click', () => { $('#player').style.display = 'none'; $('#video').pause(); });
+$('#mas').addEventListener('click', () => { mostrar += 240; render(); });
+$('#sinc').addEventListener('click', sincronizar);
+$('#guardar').addEventListener('click', () => {
+  const t = $('#pat').value.trim();
+  if (t) localStorage.setItem('gh_pat', t);
+  $('#aviso').textContent = 'Token guardado en este dispositivo.';
+});
+document.addEventListener('keydown', e => {
+  if (e.key === '/' && document.activeElement !== $('#q')){ e.preventDefault(); $('#q').focus(); }
+  if (e.key === 'Escape'){ $('#player').style.display = 'none'; $('#video').pause(); }
+});
+
+async function estado(){
+  const n = CATALOGO.length, listos = CATALOGO.filter(v => v.estado === 'listo').length;
+  let txt = `${n} en el catálogo · ${listos} descargados · repo: ${REPO || 'local'}`;
+  if (navigator.storage && navigator.storage.estimate){
+    const e = await navigator.storage.estimate();
+    txt += ` · caché ${(e.usage/1048576).toFixed(1)} MB`;
+  }
+  if (!localStorage.getItem('gh_pat')) txt += ' · pega tu token abajo para poder descargar';
+  $('#aviso').textContent = txt;
+}
+
+$('#prep').addEventListener('click', async () => {
+  const b = $('#prep'); const listos = CATALOGO.filter(v => v.estado === 'listo');
+  if (!listos.length) return;
+  if (navigator.storage && navigator.storage.persist) navigator.storage.persist();
+  const c = await caches.open('media-v2');
+  let i = 0;
+  for (const v of listos){
+    try {
+      if (!(await c.match(v.archivo))){
+        const r = await fetch(v.archivo, { mode: 'no-cors' });
+        await c.put(v.archivo, r);
+      }
+    } catch (e) {}
+    b.textContent = `Preparando ${++i}/${listos.length}`;
+  }
+  b.textContent = 'Offline listo';
+  setTimeout(() => b.textContent = 'Preparar offline', 2500);
+  estado();
+});
+
+(async function inicio(){
+  if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js');
+  await cargar(); renderChips(); render(); estado();
+  setInterval(async () => {
+    const activas = Object.values(cola).some(t => Date.now() - t < 20*60000);
+    if (activas){ await cargar(); render(); }
+  }, 45000);
+})();
+</script>
+</body>
+</html>
